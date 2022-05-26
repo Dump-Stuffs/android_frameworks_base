@@ -171,6 +171,7 @@ import com.android.systemui.fragments.ExtensionFragmentListener;
 import com.android.systemui.fragments.FragmentHostManager;
 import com.android.systemui.fragments.FragmentService;
 import com.android.systemui.keyguard.KeyguardService;
+import com.android.systemui.keyguard.KeyguardSliceProvider;
 import com.android.systemui.keyguard.KeyguardUnlockAnimationController;
 import com.android.systemui.keyguard.KeyguardViewMediator;
 import com.android.systemui.keyguard.ScreenLifecycle;
@@ -4088,6 +4089,12 @@ public class StatusBar extends SystemUI implements
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.STATUS_BAR_QUICK_QS_PULLDOWN),
+                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    Settings.Secure.PULSE_ON_NEW_TRACKS),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -4097,6 +4104,13 @@ public class StatusBar extends SystemUI implements
                 case Settings.System.DOUBLE_TAP_SLEEP_LOCKSCREEN:
                 case Settings.System.DOUBLE_TAP_SLEEP_GESTURE:
                     setDoubleTapToSleepGesture();
+		    break;
+                case Settings.System.STATUS_BAR_QUICK_QS_PULLDOWN:
+                    setStatusBarWindowViewOptions();
+	 	    break;
+                case Settings.Secure.PULSE_ON_NEW_TRACKS:
+                    setPulseOnNewTracks();
+		    break;
             }
 
             if (uri.equals(Settings.System.getUriFor(Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL)) ||
@@ -4109,6 +4123,8 @@ public class StatusBar extends SystemUI implements
         void update() {
             setScreenBrightnessMode();
             setDoubleTapToSleepGesture();
+            setStatusBarWindowViewOptions();
+            setPulseOnNewTracks();
         }
 
         private void setDoubleTapToSleepGesture() {
@@ -4128,6 +4144,20 @@ public class StatusBar extends SystemUI implements
         mBrightnessControl = Settings.System.getIntForUser(
             mContext.getContentResolver(), Settings.System.STATUS_BAR_BRIGHTNESS_CONTROL, 0,
             UserHandle.USER_CURRENT) == 1;
+    }
+
+    private void setStatusBarWindowViewOptions() {
+        if (mNotificationShadeWindowViewController != null) {
+            mNotificationShadeWindowViewController.setStatusBarWindowViewOptions();
+        }
+    }
+
+    private void setPulseOnNewTracks() {
+        if (KeyguardSliceProvider.getAttachedInstance() != null) {
+            KeyguardSliceProvider.getAttachedInstance().setPulseOnNewTracks(Settings.Secure.getIntForUser(mContext.getContentResolver(),
+                    Settings.Secure.PULSE_ON_NEW_TRACKS, 0,
+                    UserHandle.USER_CURRENT) == 1);
+        }
     }
 
     private final BroadcastReceiver mBannerActionBroadcastReceiver = new BroadcastReceiver() {
@@ -4470,7 +4500,7 @@ public class StatusBar extends SystemUI implements
                     mNavigationBarController.onDisplayRemoved(mDisplayId);
                 }
             }
-        }
+         }
     }
     // End Extra BaseStatusBarMethods.
 
